@@ -1,6 +1,6 @@
 use ratatui::{
     layout::Rect,
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph},
     Frame,
@@ -30,7 +30,7 @@ pub fn render(f: &mut Frame, area: Rect, app: &App, scroll: usize) {
                 Span::styled(
                     format!("  {k:<key_width$}"),
                     Style::default()
-                        .fg(Color::DarkGray)
+                        .fg(app.theme.muted)
                         .add_modifier(Modifier::BOLD),
                 ),
                 Span::raw(v),
@@ -43,10 +43,11 @@ pub fn render(f: &mut Frame, area: Rect, app: &App, scroll: usize) {
     f.render_widget(Clear, popup);
     f.render_widget(
         Paragraph::new(lines)
+            .style(app.theme.base())
             .block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::Cyan))
+                    .border_style(Style::default().fg(app.theme.info))
                     .title(format!(" Inspect · {section_label}  K or Esc close ")),
             )
             .scroll((scroll as u16, 0)),

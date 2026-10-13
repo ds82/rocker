@@ -1,14 +1,15 @@
 use ratatui::{
     layout::Rect,
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, List, ListItem},
     Frame,
 };
 
 use crate::app::Section;
+use crate::theme::Theme;
 
-pub fn render(f: &mut Frame, area: Rect, cursor: usize, current: Section) {
+pub fn render(f: &mut Frame, area: Rect, theme: &Theme, cursor: usize, current: Section) {
     let width: u16 = 24;
     let height: u16 = Section::ALL.len() as u16 + 2;
 
@@ -30,10 +31,10 @@ pub fn render(f: &mut Frame, area: Rect, cursor: usize, current: Section) {
 
             let style = if highlighted {
                 Style::default()
-                    .fg(Color::Yellow)
+                    .fg(theme.accent)
                     .add_modifier(Modifier::BOLD)
             } else if active {
-                Style::default().fg(Color::Green)
+                Style::default().fg(theme.success)
             } else {
                 Style::default()
             };
@@ -42,10 +43,10 @@ pub fn render(f: &mut Frame, area: Rect, cursor: usize, current: Section) {
         })
         .collect();
 
-    let list = List::new(items).block(
+    let list = List::new(items).style(theme.base()).block(
         Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Yellow))
+            .border_style(Style::default().fg(theme.accent))
             .title(" Go to "),
     );
 

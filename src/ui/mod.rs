@@ -1,5 +1,6 @@
 use ratatui::{
     layout::{Constraint, Layout},
+    widgets::Block,
     Frame,
 };
 
@@ -13,6 +14,9 @@ mod logs;
 mod menu;
 
 pub fn render(f: &mut Frame, app: &App) {
+    // Paint the theme background everywhere first; a no-op for `bg = reset`.
+    f.render_widget(Block::default().style(app.theme.base()), f.area());
+
     if let Mode::Log { scroll, follow } = app.mode {
         logs::render(f, f.area(), app, scroll, follow);
         return;
@@ -32,11 +36,11 @@ pub fn render(f: &mut Frame, app: &App) {
     command::render_statusbar(f, vertical[2], app);
 
     if let Mode::Menu { cursor } = app.mode {
-        menu::render(f, area, cursor, app.section);
+        menu::render(f, area, &app.theme, cursor, app.section);
     }
 
     if let Mode::Help { scroll } = app.mode {
-        help::render(f, area, scroll);
+        help::render(f, area, &app.theme, scroll);
     }
 
     if let Mode::Inspect { scroll } = app.mode {

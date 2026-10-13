@@ -1,6 +1,6 @@
 use ratatui::{
     layout::Rect,
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span},
     widgets::Paragraph,
     Frame,
@@ -11,113 +11,97 @@ use crate::app::{App, Mode, PendingAction};
 const SPINNER: &[char] = &['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
 pub fn render_title(f: &mut Frame, area: Rect, app: &App) {
+    let t = &app.theme;
     let mode_label = match &app.mode {
         Mode::Normal => Span::styled(
             " [normal] ",
-            Style::default()
-                .fg(Color::Green)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(t.success).add_modifier(Modifier::BOLD),
         ),
         Mode::Command(_) => Span::styled(
             " [command] ",
-            Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(t.accent).add_modifier(Modifier::BOLD),
         ),
         Mode::Filter(_) => Span::styled(
             " [filter] ",
-            Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(t.info).add_modifier(Modifier::BOLD),
         ),
         Mode::Log { .. } => Span::styled(
             " [log] ",
             Style::default()
-                .fg(Color::Magenta)
+                .fg(t.highlight)
                 .add_modifier(Modifier::BOLD),
         ),
         Mode::Confirm(_) => Span::styled(
             " [confirm] ",
-            Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+            Style::default().fg(t.danger).add_modifier(Modifier::BOLD),
         ),
         Mode::Menu { .. } => Span::styled(
             " [menu] ",
-            Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(t.accent).add_modifier(Modifier::BOLD),
         ),
         Mode::Visual { .. } => Span::styled(
             " [visual] ",
             Style::default()
-                .fg(Color::Magenta)
+                .fg(t.highlight)
                 .add_modifier(Modifier::BOLD),
         ),
         Mode::Yank => Span::styled(
             " [yank] ",
             Style::default()
-                .fg(Color::Blue)
+                .fg(t.secondary)
                 .add_modifier(Modifier::BOLD),
         ),
         Mode::Exec { .. } => Span::styled(
             " [exec] ",
-            Style::default()
-                .fg(Color::Green)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(t.success).add_modifier(Modifier::BOLD),
         ),
         Mode::Help { .. } => Span::styled(
             " [help] ",
-            Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(t.accent).add_modifier(Modifier::BOLD),
         ),
         Mode::Inspect { .. } => Span::styled(
             " [inspect] ",
-            Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(t.info).add_modifier(Modifier::BOLD),
         ),
     };
 
     let section = Span::styled(
         app.section.label(),
-        Style::default()
-            .fg(Color::White)
-            .add_modifier(Modifier::BOLD),
+        Style::default().fg(t.title).add_modifier(Modifier::BOLD),
     );
 
-    let right = Span::styled(" rocker ", Style::default().fg(Color::DarkGray));
+    let right = Span::styled(" rocker ", Style::default().fg(t.muted));
 
     let mut spans = vec![mode_label, section];
     if !app.filter.is_empty() {
-        spans.push(Span::styled("  / ", Style::default().fg(Color::Cyan)));
+        spans.push(Span::styled("  / ", Style::default().fg(t.info)));
         spans.push(Span::styled(
             app.filter.as_str(),
-            Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(t.info).add_modifier(Modifier::BOLD),
         ));
     }
     spans.push(right);
 
     let line = Line::from(spans);
     f.render_widget(
-        Paragraph::new(line).style(Style::default().bg(Color::DarkGray)),
+        Paragraph::new(line).style(Style::default().bg(t.bar_bg).fg(t.fg)),
         area,
     );
 }
 
 pub fn render_statusbar(f: &mut Frame, area: Rect, app: &App) {
+    let t = &app.theme;
     let content = match &app.mode {
         Mode::Command(input) => Line::from(vec![
-            Span::styled(":", Style::default().fg(Color::Yellow)),
+            Span::styled(":", Style::default().fg(t.accent)),
             Span::raw(input.as_str()),
-            Span::styled("█", Style::default().fg(Color::Yellow)),
+            Span::styled("█", Style::default().fg(t.accent)),
         ]),
 
         Mode::Filter(input) => Line::from(vec![
-            Span::styled("/", Style::default().fg(Color::Cyan)),
+            Span::styled("/", Style::default().fg(t.info)),
             Span::raw(input.as_str()),
-            Span::styled("█", Style::default().fg(Color::Cyan)),
+            Span::styled("█", Style::default().fg(t.info)),
         ]),
 
         Mode::Confirm(pending) => {
@@ -132,7 +116,7 @@ pub fn render_statusbar(f: &mut Frame, area: Rect, app: &App) {
             Line::from(vec![
                 Span::styled(
                     " ! ",
-                    Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+                    Style::default().fg(t.danger).add_modifier(Modifier::BOLD),
                 ),
                 Span::raw(label),
             ])
@@ -140,25 +124,25 @@ pub fn render_statusbar(f: &mut Frame, area: Rect, app: &App) {
 
         Mode::Menu { .. } => Line::from(vec![
             Span::raw("  "),
-            Span::styled("j/k", Style::default().fg(Color::Yellow)),
+            Span::styled("j/k", Style::default().fg(t.accent)),
             Span::raw(" navigate  "),
-            Span::styled("Enter", Style::default().fg(Color::Yellow)),
+            Span::styled("Enter", Style::default().fg(t.accent)),
             Span::raw(" select  "),
-            Span::styled("Esc/Tab", Style::default().fg(Color::DarkGray)),
+            Span::styled("Esc/Tab", Style::default().fg(t.muted)),
             Span::raw(" close"),
         ]),
 
         Mode::Help { .. } => Line::from(vec![
-            Span::styled("  j/k", Style::default().fg(Color::DarkGray)),
+            Span::styled("  j/k", Style::default().fg(t.muted)),
             Span::raw(" scroll  "),
-            Span::styled("?  Esc  q", Style::default().fg(Color::DarkGray)),
+            Span::styled("?  Esc  q", Style::default().fg(t.muted)),
             Span::raw(" close"),
         ]),
 
         Mode::Inspect { .. } => Line::from(vec![
-            Span::styled("  j/k", Style::default().fg(Color::DarkGray)),
+            Span::styled("  j/k", Style::default().fg(t.muted)),
             Span::raw(" scroll  "),
-            Span::styled("K  Esc", Style::default().fg(Color::DarkGray)),
+            Span::styled("K  Esc", Style::default().fg(t.muted)),
             Span::raw(" close"),
         ]),
 
@@ -166,22 +150,22 @@ pub fn render_statusbar(f: &mut Frame, area: Rect, app: &App) {
             input, interactive, ..
         } => {
             let (mode_label, mode_color) = if *interactive {
-                ("interactive", Color::Green)
+                ("interactive", t.success)
             } else {
-                ("one-shot", Color::Yellow)
+                ("one-shot", t.warning)
             };
             Line::from(vec![
-                Span::styled("exec ", Style::default().fg(Color::Green)),
-                Span::styled("[", Style::default().fg(Color::DarkGray)),
+                Span::styled("exec ", Style::default().fg(t.success)),
+                Span::styled("[", Style::default().fg(t.muted)),
                 Span::styled(
                     mode_label,
                     Style::default().fg(mode_color).add_modifier(Modifier::BOLD),
                 ),
-                Span::styled("]", Style::default().fg(Color::DarkGray)),
-                Span::styled(": ", Style::default().fg(Color::Green)),
+                Span::styled("]", Style::default().fg(t.muted)),
+                Span::styled(": ", Style::default().fg(t.success)),
                 Span::raw(input.as_str()),
-                Span::styled("█", Style::default().fg(Color::Green)),
-                Span::styled("  Tab", Style::default().fg(Color::DarkGray)),
+                Span::styled("█", Style::default().fg(t.success)),
+                Span::styled("  Tab", Style::default().fg(t.muted)),
                 Span::raw(" toggle"),
             ])
         }
@@ -195,16 +179,16 @@ pub fn render_statusbar(f: &mut Frame, area: Rect, app: &App) {
             };
             let mut spans = vec![
                 Span::raw("  "),
-                Span::styled("y", Style::default().fg(Color::Blue)),
+                Span::styled("y", Style::default().fg(t.secondary)),
                 Span::raw(" name  "),
-                Span::styled(key_i_label, Style::default().fg(Color::Blue)),
+                Span::styled(key_i_label, Style::default().fg(t.secondary)),
                 Span::raw("  "),
             ];
             if !key_d_label.is_empty() {
-                spans.push(Span::styled(key_d_label, Style::default().fg(Color::Blue)));
+                spans.push(Span::styled(key_d_label, Style::default().fg(t.secondary)));
                 spans.push(Span::raw("  "));
             }
-            spans.push(Span::styled("Esc", Style::default().fg(Color::DarkGray)));
+            spans.push(Span::styled("Esc", Style::default().fg(t.muted)));
             spans.push(Span::raw(" cancel"));
             Line::from(spans)
         }
@@ -218,17 +202,17 @@ pub fn render_statusbar(f: &mut Frame, area: Rect, app: &App) {
                 Span::styled(
                     format!("{count} selected"),
                     Style::default()
-                        .fg(Color::Magenta)
+                        .fg(t.highlight)
                         .add_modifier(Modifier::BOLD),
                 ),
                 Span::raw("  "),
-                Span::styled("j/k", Style::default().fg(Color::Magenta)),
+                Span::styled("j/k", Style::default().fg(t.highlight)),
                 Span::raw(" extend  "),
-                Span::styled("d", Style::default().fg(Color::Red)),
+                Span::styled("d", Style::default().fg(t.danger)),
                 Span::raw(" delete  "),
-                Span::styled("s", Style::default().fg(Color::Green)),
+                Span::styled("s", Style::default().fg(t.success)),
                 Span::raw(" start/stop  "),
-                Span::styled("Esc", Style::default().fg(Color::DarkGray)),
+                Span::styled("Esc", Style::default().fg(t.muted)),
                 Span::raw(" cancel"),
             ])
         }
@@ -246,39 +230,37 @@ pub fn render_statusbar(f: &mut Frame, area: Rect, app: &App) {
                     Span::raw("  "),
                     Span::styled(
                         ch.to_string(),
-                        Style::default()
-                            .fg(Color::Cyan)
-                            .add_modifier(Modifier::BOLD),
+                        Style::default().fg(t.info).add_modifier(Modifier::BOLD),
                     ),
                     Span::raw("  "),
-                    Span::styled(app.spinner_label.as_str(), Style::default().fg(Color::Cyan)),
-                    Span::styled(extra, Style::default().fg(Color::DarkGray)),
+                    Span::styled(app.spinner_label.as_str(), Style::default().fg(t.info)),
+                    Span::styled(extra, Style::default().fg(t.muted)),
                 ])
             } else if let Some(ref msg) = app.status {
                 Line::from(Span::styled(
                     format!(" {msg}"),
-                    Style::default().fg(Color::Yellow),
+                    Style::default().fg(t.warning),
                 ))
             } else {
                 Line::from(vec![
                     Span::raw("  "),
-                    Span::styled("e", Style::default().fg(Color::Green)),
+                    Span::styled("e", Style::default().fg(t.success)),
                     Span::raw(" exec  "),
-                    Span::styled("v", Style::default().fg(Color::Magenta)),
+                    Span::styled("v", Style::default().fg(t.highlight)),
                     Span::raw(" visual  "),
-                    Span::styled("s", Style::default().fg(Color::Green)),
+                    Span::styled("s", Style::default().fg(t.success)),
                     Span::raw(" start/stop  "),
-                    Span::styled("r", Style::default().fg(Color::Green)),
+                    Span::styled("r", Style::default().fg(t.success)),
                     Span::raw(" restart  "),
-                    Span::styled("d", Style::default().fg(Color::Red)),
+                    Span::styled("d", Style::default().fg(t.danger)),
                     Span::raw(" delete  "),
-                    Span::styled("l", Style::default().fg(Color::Cyan)),
+                    Span::styled("l", Style::default().fg(t.info)),
                     Span::raw(" logs  "),
-                    Span::styled("/", Style::default().fg(Color::Cyan)),
+                    Span::styled("/", Style::default().fg(t.info)),
                     Span::raw(" filter  "),
-                    Span::styled("Tab", Style::default().fg(Color::Yellow)),
+                    Span::styled("Tab", Style::default().fg(t.accent)),
                     Span::raw(" sections  "),
-                    Span::styled("q", Style::default().fg(Color::DarkGray)),
+                    Span::styled("q", Style::default().fg(t.muted)),
                     Span::raw(" quit"),
                 ])
             }
@@ -286,7 +268,7 @@ pub fn render_statusbar(f: &mut Frame, area: Rect, app: &App) {
     };
 
     f.render_widget(
-        Paragraph::new(content).style(Style::default().bg(Color::DarkGray)),
+        Paragraph::new(content).style(Style::default().bg(t.bar_bg).fg(t.fg)),
         area,
     );
 }
