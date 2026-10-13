@@ -332,7 +332,7 @@ impl App {
                     }
                 });
                 self.clamp_selected();
-                self.status = None;
+                self.clear_status_unless_toast();
             }
             Err(e) => self.status = Some(format!("error: {e}")),
         }
@@ -350,7 +350,7 @@ impl App {
                     a.repository.cmp(&b.repository).then(a.tag.cmp(&b.tag))
                 });
                 self.clamp_selected();
-                self.status = None;
+                self.clear_status_unless_toast();
             }
             Err(e) => self.status = Some(format!("error: {e}")),
         }
@@ -371,7 +371,7 @@ impl App {
                     .collect();
                 self.volumes.sort_unstable_by(|a, b| a.name.cmp(&b.name));
                 self.clamp_selected();
-                self.status = None;
+                self.clear_status_unless_toast();
             }
             Err(e) => self.status = Some(format!("error: {e}")),
         }
@@ -387,7 +387,7 @@ impl App {
                 self.networks = list.into_iter().map(Network::from).collect();
                 self.networks.sort_unstable_by(|a, b| a.name.cmp(&b.name));
                 self.clamp_selected();
-                self.status = None;
+                self.clear_status_unless_toast();
             }
             Err(e) => self.status = Some(format!("error: {e}")),
         }
@@ -429,6 +429,13 @@ impl App {
                 self.status_expires =
                     Some(std::time::Instant::now() + std::time::Duration::from_secs(5));
             }
+        }
+    }
+
+    /// Clear a plain status message but leave an unexpired toast alone.
+    fn clear_status_unless_toast(&mut self) {
+        if self.status_expires.is_none() {
+            self.status = None;
         }
     }
 
