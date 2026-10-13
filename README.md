@@ -24,6 +24,7 @@ A vim-inspired terminal UI for Docker, built with Rust and [Ratatui](https://git
 - Command history with up/down arrow navigation
 - Filter with `/` — substring match, clears on Esc
 - Remote Docker daemon via SSH (`DOCKER_HOST`)
+- Color themes (gruvbox, catppuccin, solarized) with per-color overrides
 - Config file at `~/.config/rocker/config.toml`
 - Command history persisted at `~/.local/share/rocker/history`
 
@@ -115,7 +116,48 @@ Built-in commands: `:q` / `:quit`.
 [general]
 refresh_interval_ms = 2000                 # default: 2000
 default_section = "containers"             # containers | images | volumes | networks
+
+[theme]
+name = "gruvbox-dark"                      # default: "default"
+danger = "#ff5555"                         # override any role, see below
 ```
+
+### Themes
+
+Pick a built-in theme with `name` (case-insensitive):
+
+| Theme | Colors |
+|-------|--------|
+| `default` | 16 ANSI colors on your terminal's background (the original look) |
+| `gruvbox-dark` | [Gruvbox](https://github.com/morhetz/gruvbox) dark |
+| `catppuccin-mocha` | [Catppuccin](https://catppuccin.com/palette) Mocha |
+| `solarized-light` | [Solarized](https://ethanschoonover.com/solarized) light |
+
+Every other key under `[theme]` overrides one **role**, a named color slot the UI draws with:
+
+| Role | Colors |
+|------|--------|
+| `bg` / `fg` | background and text of the main area, popups and log view |
+| `title` | section name in the title bar |
+| `muted` | secondary columns, compose group headers, dim key hints |
+| `border` | list and log borders, table headers |
+| `bar_bg` | title bar and status bar background |
+| `accent` | `[command]`/`[menu]`/`[help]` labels, popup borders, `:` prompt, visual cursor row |
+| `info` | `[filter]`/`[inspect]` labels, filter text, spinner, help keys |
+| `success` | `[normal]`/`[exec]` labels, start/restart hints, `[follow]` |
+| `warning` | status messages, `[paused]` in logs, one-shot exec |
+| `danger` | `[confirm]`, errors, delete hints |
+| `highlight` | `[visual]`/`[log]` labels, visual-mode hints |
+| `secondary` | `[yank]` label and yank hints |
+| `selected_bg` | selected row |
+| `visual_bg` | rows selected in visual mode |
+| `status_running` / `status_exited` / `status_paused` | container state |
+
+Color values are one of the 16 ANSI names (`red`, `light_blue`, `darkgray`, … — case and `_` don't matter), `reset` (the terminal's default) or hex `#rrggbb`.
+
+- **Transparent terminal?** The hex themes paint their own background. Add `bg = "reset"` to keep your terminal's background.
+- **Truecolor:** hex colors need a truecolor terminal. rocker warns at startup when `COLORTERM` isn't `truecolor` or `24bit`. If your terminal supports truecolor but the variable gets lost (common in tmux or over SSH), add `export COLORTERM=truecolor` to your shell profile.
+- **Mistakes in `[theme]`** (unknown theme name, invalid color, unknown key) never stop rocker. It falls back to the theme's colors and shows a warning in the status bar for 10 seconds.
 
 ## Docker host resolution
 
