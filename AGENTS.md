@@ -4,15 +4,16 @@ rocker is a vim-style terminal UI for Docker. It's written in Rust (ratatui + cr
 
 ## Verify
 
-CI (`.github/workflows/ci.yml`) fails on any of these, so run them before calling work done:
+Run all of these before calling work done. CI (`.github/workflows/ci.yml`) runs the first three; `cargo test` is not in CI yet.
 
 ```sh
 cargo fmt --check
 cargo clippy -- -D warnings
 cargo build
+cargo test
 ```
 
-There are no tests yet. To check behaviour, run `cargo run` against a live Docker daemon.
+Unit tests exist only for theme resolution (`src/theme.rs`). To check UI behaviour, run `cargo run` against a live Docker daemon.
 
 ## Architecture
 
@@ -55,7 +56,15 @@ The list refreshes (`refresh_*`) are awaited inline on the periodic tick. The ti
 - **SSH remotes** use `SshTunnel` in `docker/client.rs`. It spawns `ssh -N -L /tmp/rocker-<pid>.sock:/var/run/docker.sock` and points bollard at the local socket. The tunnel stays alive for as long as `App._tunnel` holds it, and the ssh child is killed on drop. Any `DOCKER_HOST` that doesn't start with `unix://` or `tcp://` is treated as SSH.
 - **Terminal safety**: `main.rs` installs a panic hook that restores the terminal. Keep it around any new code path that leaves raw mode.
 - **Clipboard** goes through OSC 52 (`src/clipboard.rs`, with its own base64 encoder) and has no system clipboard dependency. Copying works over SSH and in tmux.
-- **Config** (`src/config.rs`, `src/theme.rs`) is entirely `#[serde(default)]`. A missing or unparseable file silently falls back to the defaults, so every new field needs a `Default` value.
+- **Config** (`src/config.rs`) is entirely `#[serde(default)]`. A missing or unparseable file silently falls back to the defaults, so every new field needs a `Default` value. The exception is `[theme]`: it's read as a raw table and resolved by `Theme::resolve`, which turns bad entries into startup warnings shown in the status bar.
+- **Colors come from the theme.** UI code uses `app.theme.<role>`, never a `Color::*` literal. Adding a role means touching each of:
+  - the field on `Theme`
+  - `ROLES`
+  - `role_mut`
+  - every built-in theme constructor in `src/theme.rs`
+  - the roles table in `README.md`
+
+  The `default` theme must keep the original ANSI look. Theming vocabulary is defined in `CONTEXT.md`.
 - Command history (`src/history.rs`) is kept in `~/.local/share/rocker/history` and `exec_history`. The `:` command bar currently implements only `:q`/`:quit` (`execute_command`).
 
 ## Planning
