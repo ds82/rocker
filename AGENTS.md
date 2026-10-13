@@ -58,7 +58,6 @@ The list refreshes (`refresh_*`) are awaited inline on the periodic tick. The ti
 - **Config** (`src/config.rs`, `src/theme.rs`) is entirely `#[serde(default)]`. A missing or unparseable file silently falls back to the defaults, so every new field needs a `Default` value.
 - Command history (`src/history.rs`) is kept in `~/.local/share/rocker/history` and `exec_history`. The `:` command bar currently implements only `:q`/`:quit` (`execute_command`).
 
-## Planning docs
+## Planning
 
-- `PLAN.md` holds the original vision and the decisions behind it. Its architecture tree and parts of its keybinding/config sections (`[remote]`, `[keybindings]`, `portable-pty`, fuzzy filter) describe intended features that were never built. For how things work today, trust the code and `README.md`.
-- `openspec/` holds OpenSpec spec-driven change proposals. Use the `openspec-*` skills to propose, apply or archive a change.
+Plan features as OpenSpec changes in `openspec/` (use the `openspec-*` skills). The feature backlog lives in GitHub issues labelled `enhancement`.
