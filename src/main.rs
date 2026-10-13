@@ -36,8 +36,10 @@ async fn main() -> Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     let default_section = app::Section::from_str(&cfg.general.default_section);
-    let theme = theme::Theme::from(&cfg.theme);
-    let mut app = app::App::new(docker, tunnel, default_section, theme);
+    let (theme, mut warnings) = theme::Theme::resolve(&cfg.theme);
+    let colorterm = std::env::var("COLORTERM").ok();
+    warnings.extend(theme::truecolor_warning(&theme, colorterm.as_deref()));
+    let mut app = app::App::new(docker, tunnel, default_section, theme, warnings);
     let result = run(&mut terminal, &mut app, cfg.general.refresh_interval_ms).await;
 
     disable_raw_mode()?;

@@ -188,8 +188,19 @@ impl App {
         tunnel: Option<SshTunnel>,
         default_section: Section,
         theme: Theme,
+        startup_warnings: Vec<String>,
     ) -> Self {
         let (msg_tx, msg_rx) = mpsc::channel(256);
+        // Startup warnings (e.g. bad theme config) show as a toast so that
+        // refreshes don't wipe them before the user can read them.
+        let (status, status_expires) = if startup_warnings.is_empty() {
+            (None, None)
+        } else {
+            (
+                Some(format!("warning: {}", startup_warnings.join("; "))),
+                Some(std::time::Instant::now() + std::time::Duration::from_secs(10)),
+            )
+        };
         Self {
             docker: Arc::new(docker),
             _tunnel: tunnel,
@@ -204,7 +215,7 @@ impl App {
             networks: Vec::new(),
             selected: 0,
             log_lines: Vec::new(),
-            status: None,
+            status,
             log_stop_tx: None,
             msg_tx,
             msg_rx,
@@ -214,7 +225,7 @@ impl App {
             history: History::load(),
             exec_history: History::load_named("exec_history"),
             container_inspect: None,
-            status_expires: None,
+            status_expires,
             theme,
         }
     }

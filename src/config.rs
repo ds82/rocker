@@ -1,14 +1,14 @@
 use serde::Deserialize;
 use std::path::PathBuf;
 
-use crate::theme::ThemeConfig;
-
 #[derive(Debug, Deserialize)]
 #[serde(default)]
 #[derive(Default)]
 pub struct Config {
     pub general: GeneralConfig,
-    pub theme: ThemeConfig,
+    /// Raw `[theme]` table, resolved by `Theme::resolve` so that unknown keys
+    /// and bad values can be reported instead of silently dropped.
+    pub theme: toml::Table,
 }
 
 #[derive(Debug, Deserialize)]

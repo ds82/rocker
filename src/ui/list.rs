@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use ratatui::{
     layout::{Alignment, Constraint, Rect},
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Cell, Paragraph, Row, Table, TableState},
     Frame,
@@ -39,7 +39,7 @@ fn render_containers(f: &mut Frame, area: Rect, app: &App) {
         containers_seen += group.containers.len();
     }
 
-    let header = bold_header(&["NAME", "IMAGE", "STATUS", "PORTS"]);
+    let header = bold_header(app, &["NAME", "IMAGE", "STATUS", "PORTS"]);
 
     let mut rows: Vec<Row> = Vec::new();
     let mut container_idx: usize = 0;
@@ -50,14 +50,14 @@ fn render_containers(f: &mut Frame, area: Rect, app: &App) {
                 Row::new(vec![
                     Cell::from(format!(" ▸ {proj}")).style(
                         Style::default()
-                            .fg(Color::DarkGray)
+                            .fg(app.theme.muted)
                             .add_modifier(Modifier::BOLD),
                     ),
                     Cell::from(""),
                     Cell::from(""),
                     Cell::from(""),
                 ])
-                .style(Style::default().bg(Color::Reset)),
+                .style(Style::default().bg(app.theme.bg)),
             );
         }
 
@@ -77,7 +77,7 @@ fn render_containers(f: &mut Frame, area: Rect, app: &App) {
                     " ├─ "
                 };
                 Cell::from(Line::from(vec![
-                    Span::styled(symbol, Style::default().fg(Color::DarkGray)),
+                    Span::styled(symbol, Style::default().fg(app.theme.muted)),
                     Span::raw(c.name.clone()),
                 ]))
             } else {
@@ -91,7 +91,7 @@ fn render_containers(f: &mut Frame, area: Rect, app: &App) {
             ]);
             let row = if let Some((lo, hi)) = visual_range {
                 if container_idx >= lo && container_idx <= hi {
-                    row.style(Style::default().bg(Color::Blue))
+                    row.style(Style::default().bg(app.theme.visual_bg))
                 } else {
                     row
                 }
@@ -107,9 +107,9 @@ fn render_containers(f: &mut Frame, area: Rect, app: &App) {
 
     let hl_style = if visual_range.is_some() {
         Style::default()
-            .fg(Color::Yellow)
+            .fg(app.theme.accent)
             .add_modifier(Modifier::BOLD)
-            .bg(Color::Blue)
+            .bg(app.theme.visual_bg)
     } else {
         Style::default()
             .bg(app.theme.selected_bg)
@@ -127,7 +127,7 @@ fn render_containers(f: &mut Frame, area: Rect, app: &App) {
     )
     .header(header)
     .row_highlight_style(hl_style)
-    .block(panel_block(title));
+    .block(panel_block(app, title));
 
     render_table(f, area, table, display_selected, visible.is_empty());
 }
@@ -171,7 +171,7 @@ fn build_container_groups<'a>(containers: &[&'a Container]) -> Vec<ContainerGrou
 fn render_images(f: &mut Frame, area: Rect, app: &App) {
     let visible = app.visible_images();
 
-    let header = bold_header(&["REPOSITORY", "TAG", "ID", "SIZE", "CREATED"]);
+    let header = bold_header(app, &["REPOSITORY", "TAG", "ID", "SIZE", "CREATED"]);
 
     let rows: Vec<Row> = visible
         .iter()
@@ -179,9 +179,9 @@ fn render_images(f: &mut Frame, area: Rect, app: &App) {
             Row::new(vec![
                 Cell::from(img.repository.as_str()),
                 Cell::from(img.tag.as_str()),
-                Cell::from(img.id.as_str()).style(Style::default().fg(Color::DarkGray)),
+                Cell::from(img.id.as_str()).style(Style::default().fg(app.theme.muted)),
                 Cell::from(img.size.as_str()),
-                Cell::from(img.created.as_str()).style(Style::default().fg(Color::DarkGray)),
+                Cell::from(img.created.as_str()).style(Style::default().fg(app.theme.muted)),
             ])
         })
         .collect();
@@ -200,7 +200,7 @@ fn render_images(f: &mut Frame, area: Rect, app: &App) {
     )
     .header(header)
     .row_highlight_style(highlight_style(app))
-    .block(panel_block(title));
+    .block(panel_block(app, title));
 
     render_table(f, area, table, app.selected, visible.is_empty());
 }
@@ -210,7 +210,7 @@ fn render_images(f: &mut Frame, area: Rect, app: &App) {
 fn render_volumes(f: &mut Frame, area: Rect, app: &App) {
     let visible = app.visible_volumes();
 
-    let header = bold_header(&["NAME", "DRIVER", "SCOPE", "MOUNTPOINT"]);
+    let header = bold_header(app, &["NAME", "DRIVER", "SCOPE", "MOUNTPOINT"]);
 
     let rows: Vec<Row> = visible
         .iter()
@@ -218,8 +218,8 @@ fn render_volumes(f: &mut Frame, area: Rect, app: &App) {
             Row::new(vec![
                 Cell::from(v.name.as_str()),
                 Cell::from(v.driver.as_str()),
-                Cell::from(v.scope.as_str()).style(Style::default().fg(Color::DarkGray)),
-                Cell::from(v.mountpoint.as_str()).style(Style::default().fg(Color::DarkGray)),
+                Cell::from(v.scope.as_str()).style(Style::default().fg(app.theme.muted)),
+                Cell::from(v.mountpoint.as_str()).style(Style::default().fg(app.theme.muted)),
             ])
         })
         .collect();
@@ -237,7 +237,7 @@ fn render_volumes(f: &mut Frame, area: Rect, app: &App) {
     )
     .header(header)
     .row_highlight_style(highlight_style(app))
-    .block(panel_block(title));
+    .block(panel_block(app, title));
 
     render_table(f, area, table, app.selected, visible.is_empty());
 }
@@ -247,7 +247,7 @@ fn render_volumes(f: &mut Frame, area: Rect, app: &App) {
 fn render_networks(f: &mut Frame, area: Rect, app: &App) {
     let visible = app.visible_networks();
 
-    let header = bold_header(&["NAME", "DRIVER", "SCOPE", "SUBNET"]);
+    let header = bold_header(app, &["NAME", "DRIVER", "SCOPE", "SUBNET"]);
 
     let rows: Vec<Row> = visible
         .iter()
@@ -255,7 +255,7 @@ fn render_networks(f: &mut Frame, area: Rect, app: &App) {
             Row::new(vec![
                 Cell::from(n.name.as_str()),
                 Cell::from(n.driver.as_str()),
-                Cell::from(n.scope.as_str()).style(Style::default().fg(Color::DarkGray)),
+                Cell::from(n.scope.as_str()).style(Style::default().fg(app.theme.muted)),
                 Cell::from(n.subnet.as_str()),
             ])
         })
@@ -274,20 +274,20 @@ fn render_networks(f: &mut Frame, area: Rect, app: &App) {
     )
     .header(header)
     .row_highlight_style(highlight_style(app))
-    .block(panel_block(title));
+    .block(panel_block(app, title));
 
     render_table(f, area, table, app.selected, visible.is_empty());
 }
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
-fn bold_header<'a>(cols: &[&'a str]) -> Row<'a> {
+fn bold_header<'a>(app: &App, cols: &[&'a str]) -> Row<'a> {
     Row::new(
         cols.iter()
             .map(|&c| Cell::from(c).style(Style::default().add_modifier(Modifier::BOLD)))
             .collect::<Vec<_>>(),
     )
-    .style(Style::default().fg(Color::DarkGray))
+    .style(Style::default().fg(app.theme.border))
     .height(1)
 }
 
@@ -297,10 +297,10 @@ fn highlight_style(app: &App) -> Style {
         .add_modifier(Modifier::BOLD)
 }
 
-fn panel_block(title: String) -> Block<'static> {
+fn panel_block(app: &App, title: String) -> Block<'static> {
     Block::default()
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::DarkGray))
+        .border_style(Style::default().fg(app.theme.border))
         .title(title)
 }
 
@@ -319,10 +319,10 @@ fn render_table(f: &mut Frame, area: Rect, table: Table, selected: usize, empty:
 }
 
 #[allow(dead_code)]
-fn render_empty_hint(f: &mut Frame, area: Rect, section: Section) {
+fn render_empty_hint(f: &mut Frame, area: Rect, app: &App, section: Section) {
     let block = Block::default()
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::DarkGray))
+        .border_style(Style::default().fg(app.theme.border))
         .title(format!(" {} ", section.label()));
 
     let inner = block.inner(area);
@@ -331,7 +331,7 @@ fn render_empty_hint(f: &mut Frame, area: Rect, section: Section) {
     if inner.height > 2 {
         let msg = Line::from(Span::styled(
             format!("no {} found", section.label().to_lowercase()),
-            Style::default().fg(Color::DarkGray),
+            Style::default().fg(app.theme.muted),
         ));
         let msg_area = Rect::new(inner.x, inner.y + inner.height / 2, inner.width, 1);
         f.render_widget(Paragraph::new(msg).alignment(Alignment::Center), msg_area);

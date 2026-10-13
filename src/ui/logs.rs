@@ -1,6 +1,6 @@
 use ratatui::{
     layout::{Constraint, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
     Frame,
@@ -9,6 +9,7 @@ use ratatui::{
 use crate::app::App;
 
 pub fn render(f: &mut Frame, area: Rect, app: &App, scroll: usize, follow: bool) {
+    let t = &app.theme;
     let chunks = Layout::vertical([Constraint::Fill(1), Constraint::Length(1)]).split(area);
 
     let container_name = app
@@ -17,9 +18,9 @@ pub fn render(f: &mut Frame, area: Rect, app: &App, scroll: usize, follow: bool)
         .unwrap_or("unknown");
 
     let follow_indicator = if follow {
-        Span::styled(" [follow] ", Style::default().fg(Color::Green))
+        Span::styled(" [follow] ", Style::default().fg(t.success))
     } else {
-        Span::styled(" [paused] ", Style::default().fg(Color::Yellow))
+        Span::styled(" [paused] ", Style::default().fg(t.warning))
     };
 
     let title = Line::from(vec![
@@ -45,10 +46,10 @@ pub fn render(f: &mut Frame, area: Rect, app: &App, scroll: usize, follow: bool)
         .map(|l| Line::raw(l.as_str()))
         .collect();
 
-    let log_block = Paragraph::new(lines).block(
+    let log_block = Paragraph::new(lines).style(t.base()).block(
         Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::DarkGray))
+            .border_style(Style::default().fg(t.border))
             .title(title),
     );
 
@@ -59,12 +60,10 @@ pub fn render(f: &mut Frame, area: Rect, app: &App, scroll: usize, follow: bool)
     let status_line = Line::from(vec![
         Span::styled(
             " [log] ",
-            Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(t.info).add_modifier(Modifier::BOLD),
         ),
         hints,
     ]);
-    let status = Paragraph::new(status_line).style(Style::default().bg(Color::DarkGray));
+    let status = Paragraph::new(status_line).style(Style::default().bg(t.bar_bg).fg(t.fg));
     f.render_widget(status, chunks[1]);
 }
