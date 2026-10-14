@@ -30,11 +30,33 @@ A vim-inspired terminal UI for Docker, built with Rust and [Ratatui](https://git
 
 ## Install
 
+rocker needs a running Docker daemon, either local or reachable over SSH. Prebuilt binaries are available for macOS (Intel and Apple Silicon) and Linux (x86_64 and arm64, statically linked).
+
+**Homebrew** (macOS and Linux):
+
 ```sh
-cargo install --path .
+brew install ds82/tap/rocker
 ```
 
-Requires Rust 1.75+ and a running Docker daemon.
+**cargo-binstall**, which downloads the prebuilt binary:
+
+```sh
+cargo binstall rocker-tui
+```
+
+**From source** (requires Rust 1.88+). The crate is called `rocker-tui` because `rocker` is taken on crates.io, but the installed binary is `rocker`:
+
+```sh
+cargo install rocker-tui
+```
+
+**Direct download**: get the archive for your platform from [GitHub Releases](https://github.com/ds82/rocker/releases), check it against its `.sha256` file, and put `rocker` on your `PATH`. On macOS, a downloaded binary is quarantined by Gatekeeper; clear the flag with:
+
+```sh
+xattr -d com.apple.quarantine ./rocker
+```
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each release.
 
 ## Usage
 
@@ -185,3 +207,7 @@ SSH connections reuse `~/.ssh/config` and the system SSH agent — no credential
 | Async runtime | `tokio` (full) |
 | Config | `toml` + `serde` |
 | Error handling | `anyhow` |
+
+## License
+
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT license](LICENSE-MIT), at your option.
