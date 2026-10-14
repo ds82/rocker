@@ -27,7 +27,7 @@
 ## 4. CI cleanup
 
 - [x] 4.1 Remove the `build` job (matrix, `cross`, OpenSSL step, artifact upload) from `.github/workflows/ci.yml` and keep `check`. Verify that the YAML parses (`python3 -c "import yaml;yaml.safe_load(open('.github/workflows/ci.yml'))"`) and that `check` still runs fmt and clippy.
-- [ ] 4.2 Push the branch and open a PR. Verify all of these on the PR:
+- [x] 4.2 Push the branch and open a PR. Verify all of these on the PR:
   - CI `check` passes
   - the release workflow's `plan` job runs green, with no build or publish
   - the `auto-release` job summary shows `v0.1.0` and a changelog preview
