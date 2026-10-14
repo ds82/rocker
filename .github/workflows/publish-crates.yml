@@ -1,0 +1,27 @@
+# Publishes the crate to crates.io. Called by dist's release.yml as a custom
+# publish job (`publish-jobs = ["./publish-crates"]` in dist-workspace.toml),
+# after the GitHub Release assets are uploaded, so cargo-binstall finds the
+# prebuilt archives as soon as the new version is visible on crates.io.
+name: Publish to crates.io
+
+on:
+  workflow_call:
+    inputs:
+      plan:
+        required: true
+        type: string
+
+jobs:
+  publish:
+    name: cargo publish
+    runs-on: ubuntu-latest
+    steps:
+      # release.yml runs at the release tag, so this checks out the tag.
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --locked
