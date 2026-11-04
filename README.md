@@ -120,6 +120,14 @@ Copied via OSC 52 — works locally and over SSH. For tmux, add `set -g set-clip
 | `f` | Toggle follow mode |
 | `q` / `Esc` | Close |
 
+### Filter mode
+
+| Key | Action |
+|-----|--------|
+| `Enter` | Keep filter, return to Normal |
+| `↑` / `↓` | Move through results |
+| `Esc` | Cancel edit |
+
 ### Command mode
 
 | Key | Action |

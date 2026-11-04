@@ -989,11 +989,20 @@ impl App {
                     self.filter = s.clone();
                 }
                 self.mode = Mode::Normal;
-                self.selected = 0;
             }
             Action::Escape => {
                 // Cancel edit — leave the previously committed filter untouched
                 self.mode = Mode::Normal;
+                self.clamp_selected();
+            }
+            Action::MoveDown => {
+                let len = self.current_visible_len();
+                if len > 0 {
+                    self.selected = (self.selected + 1).min(len - 1);
+                }
+            }
+            Action::MoveUp => {
+                self.selected = self.selected.saturating_sub(1);
             }
             Action::Char(c) => {
                 if let Mode::Filter(ref mut s) = self.mode {

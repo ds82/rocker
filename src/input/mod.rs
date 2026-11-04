@@ -133,6 +133,8 @@ fn map_filter_input(key: KeyEvent) -> Action {
         KeyCode::Esc => Action::Escape,
         KeyCode::Enter => Action::Enter,
         KeyCode::Backspace => Action::Backspace,
+        KeyCode::Down => Action::MoveDown,
+        KeyCode::Up => Action::MoveUp,
         KeyCode::Char(c) => Action::Char(c),
         _ => Action::None,
     }

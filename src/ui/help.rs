@@ -159,6 +159,10 @@ fn help_lines(theme: &Theme) -> Vec<Line<'static>> {
             key(theme, "  Enter"),
             desc("           lock filter, return to Normal"),
         ]),
+        Line::from(vec![
+            key(theme, "  ↑ / ↓"),
+            desc("           move through results"),
+        ]),
         Line::from(vec![key(theme, "  Esc"), desc("             cancel edit")]),
         Line::from(""),
         section(theme, "  Command mode  [:]"),
