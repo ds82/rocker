@@ -13,7 +13,7 @@ cargo build
 cargo test
 ```
 
-Unit tests exist only for theme resolution (`src/theme.rs`). To check UI behaviour, run `cargo run` against a live Docker daemon.
+Unit tests exist only for theme resolution (`src/theme.rs`) and the inspect tree (`src/inspect_tree.rs`). To check UI behaviour, run `cargo run` against a live Docker daemon.
 
 ## Architecture
 

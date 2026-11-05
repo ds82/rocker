@@ -23,6 +23,7 @@ A vim-inspired terminal UI for Docker, built with Rust and [Ratatui](https://git
 - Vim-style yank to clipboard (`yy`, `yi`, `yd`) via OSC 52
 - Command history with up/down arrow navigation
 - Filter with `/` — substring match, clears on Esc
+- Inspect containers as a searchable, collapsible tree
 - Remote Docker daemon via SSH (`DOCKER_HOST`)
 - Color themes (gruvbox, catppuccin, solarized) with per-color overrides
 - Config file at `~/.config/rocker/config.toml`
@@ -86,6 +87,7 @@ DOCKER_HOST=ssh://user@myserver:2222 rocker
 | `e` | Exec into container shell |
 | `v` | Enter visual (multi-select) mode |
 | `y` | Enter yank mode |
+| `i` or `K` | Inspect selected item |
 | `/` | Filter list |
 | `:` | Command mode |
 | `R` | Force refresh |
@@ -127,6 +129,26 @@ Copied via OSC 52 — works locally and over SSH. For tmux, add `set -g set-clip
 | `Enter` | Keep filter, return to Normal |
 | `↑` / `↓` | Move through results |
 | `Esc` | Cancel edit |
+
+### Inspect a container (`i`)
+
+Shows the full `docker inspect` data as a collapsible tree. The bottom pane shows the path and full value of the current row.
+
+| Key | Action |
+|-----|--------|
+| `j` / `k` or `↓` / `↑` | Move down / up |
+| `g` / `G` | Jump to top / bottom |
+| `Ctrl-d` / `Ctrl-u` | Half-page down / up |
+| `l` or `→` | Expand, or step into an expanded branch |
+| `h` or `←` | Collapse, or go to the parent |
+| `L` / `H` | Expand / collapse the whole branch, including nested branches (on a leaf: its parent branch) |
+| `Enter` or `Space` | Toggle branch |
+| `/` | Search keys and values |
+| `n` / `N` | Next / previous match |
+| `Esc` | Clear search, then close |
+| `i` / `K` / `q` | Close |
+
+While typing a search, `↑` / `↓` step through matches, `Enter` keeps the search and `Esc` clears it.
 
 ### Command mode
 
