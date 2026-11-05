@@ -48,7 +48,7 @@ pub fn render(f: &mut Frame, area: Rect, app: &App, scroll: usize) {
                 Block::default()
                     .borders(Borders::ALL)
                     .border_style(Style::default().fg(app.theme.info))
-                    .title(format!(" Inspect · {section_label}  K or Esc close ")),
+                    .title(format!(" Inspect · {section_label}  i or Esc close ")),
             )
             .scroll((scroll as u16, 0)),
         popup,

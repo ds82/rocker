@@ -59,7 +59,7 @@ pub fn render_title(f: &mut Frame, area: Rect, app: &App) {
             " [help] ",
             Style::default().fg(t.accent).add_modifier(Modifier::BOLD),
         ),
-        Mode::Inspect { .. } => Span::styled(
+        Mode::Inspect { .. } | Mode::ContainerInspect { .. } => Span::styled(
             " [inspect] ",
             Style::default().fg(t.info).add_modifier(Modifier::BOLD),
         ),
@@ -142,9 +142,55 @@ pub fn render_statusbar(f: &mut Frame, area: Rect, app: &App) {
         Mode::Inspect { .. } => Line::from(vec![
             Span::styled("  j/k", Style::default().fg(t.muted)),
             Span::raw(" scroll  "),
-            Span::styled("K  Esc", Style::default().fg(t.muted)),
+            Span::styled("i  Esc", Style::default().fg(t.muted)),
             Span::raw(" close"),
         ]),
+
+        Mode::ContainerInspect {
+            tree, searching, ..
+        } => {
+            let mut spans = Vec::new();
+            if let Some(tree) = tree {
+                if *searching || !tree.query.is_empty() {
+                    let matches = tree.matches();
+                    spans.push(Span::styled("/", Style::default().fg(t.info)));
+                    spans.push(Span::raw(tree.query.as_str()));
+                    if *searching {
+                        spans.push(Span::styled("█", Style::default().fg(t.info)));
+                    }
+                    if !tree.query.is_empty() && matches.is_empty() {
+                        spans.push(Span::styled("  no matches", Style::default().fg(t.danger)));
+                    } else if !matches.is_empty() {
+                        let current = matches
+                            .iter()
+                            .position(|&i| i == tree.cursor)
+                            .map_or("-".to_string(), |p| (p + 1).to_string());
+                        spans.push(Span::styled(
+                            format!("  {current}/{}", matches.len()),
+                            Style::default().fg(t.info),
+                        ));
+                    }
+                    spans.push(Span::raw("  "));
+                }
+            }
+            if !*searching {
+                spans.extend([
+                    Span::styled("  j/k", Style::default().fg(t.muted)),
+                    Span::raw(" move  "),
+                    Span::styled("h/l", Style::default().fg(t.muted)),
+                    Span::raw(" fold  "),
+                    Span::styled("H/L", Style::default().fg(t.muted)),
+                    Span::raw(" fold all  "),
+                    Span::styled("/", Style::default().fg(t.muted)),
+                    Span::raw(" search  "),
+                    Span::styled("n/N", Style::default().fg(t.muted)),
+                    Span::raw(" next/prev  "),
+                    Span::styled("i  q  Esc", Style::default().fg(t.muted)),
+                    Span::raw(" close"),
+                ]);
+            }
+            Line::from(spans)
+        }
 
         Mode::Exec {
             input, interactive, ..

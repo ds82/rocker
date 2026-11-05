@@ -9,6 +9,7 @@ use crate::app::{App, Mode};
 mod command;
 mod help;
 mod inspect;
+mod inspect_tree;
 mod list;
 mod logs;
 mod menu;
@@ -45,5 +46,9 @@ pub fn render(f: &mut Frame, app: &App) {
 
     if let Mode::Inspect { scroll } = app.mode {
         inspect::render(f, area, app, scroll);
+    }
+
+    if let Mode::ContainerInspect { name, tree, .. } = &app.mode {
+        inspect_tree::render(f, area, app, name, tree.as_ref());
     }
 }

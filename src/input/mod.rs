@@ -36,6 +36,12 @@ pub enum Action {
     YankId,
     OpenHelp,
     Inspect,
+    Expand,
+    Collapse,
+    ExpandAll,
+    CollapseAll,
+    NextMatch,
+    PrevMatch,
     None,
 }
 
@@ -52,6 +58,10 @@ pub fn map_key(mode: &Mode, key: KeyEvent) -> Action {
         Mode::Exec { .. } => map_exec_input(key),
         Mode::Help { .. } => map_overlay(key),
         Mode::Inspect { .. } => map_overlay(key),
+        Mode::ContainerInspect {
+            searching: true, ..
+        } => map_filter_input(key),
+        Mode::ContainerInspect { .. } => map_inspect_tree(key),
     }
 }
 
@@ -77,7 +87,7 @@ fn map_normal(key: KeyEvent) -> Action {
         (KeyCode::Tab, _) => Action::OpenMenu,
         (KeyCode::Esc, _) => Action::Escape,
         (KeyCode::Char('?'), _) => Action::OpenHelp,
-        (KeyCode::Char('K'), _) => Action::Inspect,
+        (KeyCode::Char('i'), _) | (KeyCode::Char('K'), _) => Action::Inspect,
         _ => Action::None,
     }
 }
@@ -144,9 +154,33 @@ fn map_overlay(key: KeyEvent) -> Action {
     match (key.code, key.modifiers) {
         (KeyCode::Esc, _) | (KeyCode::Char('q'), _) => Action::Escape,
         (KeyCode::Char('?'), _) => Action::OpenHelp,
-        (KeyCode::Char('K'), _) => Action::Inspect,
+        (KeyCode::Char('i'), _) | (KeyCode::Char('K'), _) => Action::Inspect,
         (KeyCode::Char('j'), _) | (KeyCode::Down, _) => Action::MoveDown,
         (KeyCode::Char('k'), _) | (KeyCode::Up, _) => Action::MoveUp,
+        _ => Action::None,
+    }
+}
+
+fn map_inspect_tree(key: KeyEvent) -> Action {
+    match (key.code, key.modifiers) {
+        (KeyCode::Esc, _) => Action::Escape,
+        (KeyCode::Char('q'), _) | (KeyCode::Char('i'), _) | (KeyCode::Char('K'), _) => {
+            Action::Inspect
+        }
+        (KeyCode::Char('j'), _) | (KeyCode::Down, _) => Action::MoveDown,
+        (KeyCode::Char('k'), _) | (KeyCode::Up, _) => Action::MoveUp,
+        (KeyCode::Char('g'), _) | (KeyCode::Home, _) => Action::Top,
+        (KeyCode::Char('G'), _) | (KeyCode::End, _) => Action::Bottom,
+        (KeyCode::Char('d'), KeyModifiers::CONTROL) => Action::HalfPageDown,
+        (KeyCode::Char('u'), KeyModifiers::CONTROL) => Action::HalfPageUp,
+        (KeyCode::Char('l'), _) | (KeyCode::Right, _) => Action::Expand,
+        (KeyCode::Char('h'), _) | (KeyCode::Left, _) => Action::Collapse,
+        (KeyCode::Char('L'), _) => Action::ExpandAll,
+        (KeyCode::Char('H'), _) => Action::CollapseAll,
+        (KeyCode::Enter, _) | (KeyCode::Char(' '), _) => Action::Enter,
+        (KeyCode::Char('/'), _) => Action::EnterFilter,
+        (KeyCode::Char('n'), _) => Action::NextMatch,
+        (KeyCode::Char('N'), _) => Action::PrevMatch,
         _ => Action::None,
     }
 }

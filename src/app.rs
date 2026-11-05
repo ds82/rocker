@@ -13,6 +13,7 @@ use crate::docker::client::SshTunnel;
 use crate::docker::types::{Container, ContainerState, Image, Network, Volume};
 use crate::history::History;
 use crate::input::{map_key, Action};
+use crate::inspect_tree::InspectTree;
 use crate::theme::Theme;
 
 // ── Section ───────────────────────────────────────────────────────────────────
@@ -101,6 +102,13 @@ pub enum Mode {
     Inspect {
         scroll: usize,
     },
+    ContainerInspect {
+        container_id: String,
+        name: String,
+        /// `None` while the inspect call is in flight.
+        tree: Option<InspectTree>,
+        searching: bool,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -109,34 +117,16 @@ pub enum PendingAction {
     BulkRemoveContainers { ids: Vec<String>, count: usize },
 }
 
-// ── Container inspect detail ──────────────────────────────────────────────────
-
-pub struct ContainerInspectExtra {
-    pub mounts: Vec<MountInfo>,
-    pub networks: Vec<NetworkInfo>,
-}
-
-pub struct MountInfo {
-    pub mount_type: String,
-    pub source: String,
-    pub destination: String,
-    pub rw: bool,
-}
-
-pub struct NetworkInfo {
-    pub name: String,
-    pub ip: String,
-    pub gateway: String,
-    pub mac: String,
-}
-
 // ── Async messaging ───────────────────────────────────────────────────────────
 
 /// Events arriving from background tasks, delivered via a single channel.
 pub enum AppMsg {
     LogLine(String),
     Cmd(CmdResult),
-    InspectDetail(ContainerInspectExtra),
+    Inspect {
+        container_id: String,
+        result: std::result::Result<serde_json::Value, String>,
+    },
 }
 
 pub enum CmdResult {
@@ -174,8 +164,6 @@ pub struct App {
     // Command history
     history: History,
     exec_history: History,
-    // Container inspect detail loaded asynchronously
-    pub container_inspect: Option<ContainerInspectExtra>,
     // Status toast — auto-clears after expiry
     pub status_expires: Option<std::time::Instant>,
     // Theme (resolved from config)
@@ -224,7 +212,6 @@ impl App {
             spinner_label: String::new(),
             history: History::load(),
             exec_history: History::load_named("exec_history"),
-            container_inspect: None,
             status_expires,
             theme,
         }
@@ -463,56 +450,8 @@ impl App {
     /// Build key-value pairs describing the selected item for the inspect overlay.
     pub fn inspect_lines(&self) -> Vec<(&'static str, String)> {
         match self.section {
-            Section::Containers => {
-                let Some(c) = self.selected_container() else {
-                    return vec![];
-                };
-                let mut lines = vec![
-                    ("Name", c.name.clone()),
-                    ("ID", c.full_id.chars().take(12).collect()),
-                    ("Full ID", c.full_id.clone()),
-                    ("Image", c.image.clone()),
-                    ("State", format!("{:?}", c.state).to_lowercase()),
-                    ("Status", c.status_text.clone()),
-                ];
-                if !c.ports.is_empty() {
-                    lines.push(("Ports", c.ports.clone()));
-                }
-                if let Some(ref proj) = c.compose_project {
-                    lines.push(("Compose", proj.clone()));
-                }
-                match &self.container_inspect {
-                    Some(extra) => {
-                        for m in &extra.mounts {
-                            let rw = if m.rw { "rw" } else { "ro" };
-                            lines.push((
-                                "Mount",
-                                format!(
-                                    "{} → {}  ({}, {rw})",
-                                    m.source, m.destination, m.mount_type
-                                ),
-                            ));
-                        }
-                        for n in &extra.networks {
-                            let mut parts = vec![n.name.clone()];
-                            if !n.ip.is_empty() {
-                                parts.push(n.ip.clone());
-                            }
-                            if !n.gateway.is_empty() {
-                                parts.push(format!("gw {}", n.gateway));
-                            }
-                            if !n.mac.is_empty() {
-                                parts.push(n.mac.clone());
-                            }
-                            lines.push(("Network", parts.join("  ")));
-                        }
-                    }
-                    None => {
-                        lines.push(("", "loading…".into()));
-                    }
-                }
-                lines
-            }
+            // Containers use the tree view (Mode::ContainerInspect) instead.
+            Section::Containers => vec![],
             Section::Images => {
                 let Some(img) = self.selected_image() else {
                     return vec![];
@@ -629,6 +568,7 @@ impl App {
             Mode::Exec { .. } => self.dispatch_exec(action),
             Mode::Help { .. } => self.dispatch_help(action),
             Mode::Inspect { .. } => self.dispatch_inspect(action),
+            Mode::ContainerInspect { .. } => self.dispatch_container_inspect(action),
         }
     }
 
@@ -719,12 +659,17 @@ impl App {
             Action::EnterYank => self.mode = Mode::Yank,
             Action::OpenHelp => self.mode = Mode::Help { scroll: 0 },
             Action::Inspect => {
-                self.container_inspect = None;
-                self.mode = Mode::Inspect { scroll: 0 };
-                if self.section == Section::Containers {
-                    if let Some(c) = self.selected_container() {
-                        self.spawn_inspect(c.full_id.clone());
-                    }
+                if self.section != Section::Containers {
+                    self.mode = Mode::Inspect { scroll: 0 };
+                } else if let Some(c) = self.selected_container() {
+                    let (id, name) = (c.full_id.clone(), c.name.clone());
+                    self.mode = Mode::ContainerInspect {
+                        container_id: id.clone(),
+                        name,
+                        tree: None,
+                        searching: false,
+                    };
+                    self.spawn_inspect(id);
                 }
             }
             _ => {}
@@ -876,7 +821,6 @@ impl App {
         match action {
             Action::Escape | Action::Inspect => {
                 self.mode = Mode::Normal;
-                self.container_inspect = None;
             }
             Action::MoveDown => {
                 if let Mode::Inspect { ref mut scroll } = self.mode {
@@ -888,6 +832,67 @@ impl App {
                     *scroll = scroll.saturating_sub(1);
                 }
             }
+            _ => {}
+        }
+        Ok(false)
+    }
+
+    fn dispatch_container_inspect(&mut self, action: Action) -> Result<bool> {
+        let Mode::ContainerInspect {
+            tree, searching, ..
+        } = &mut self.mode
+        else {
+            return Ok(false);
+        };
+        let Some(tree) = tree else {
+            if matches!(action, Action::Escape | Action::Inspect) {
+                self.mode = Mode::Normal;
+            }
+            return Ok(false);
+        };
+        if *searching {
+            match action {
+                Action::Enter => *searching = false,
+                Action::Escape => {
+                    *searching = false;
+                    tree.set_query(String::new());
+                }
+                Action::Char(c) => {
+                    let mut query = tree.query.clone();
+                    query.push(c);
+                    tree.set_query(query);
+                }
+                Action::Backspace => {
+                    let mut query = tree.query.clone();
+                    query.pop();
+                    tree.set_query(query);
+                }
+                Action::MoveDown => tree.next_match(),
+                Action::MoveUp => tree.prev_match(),
+                _ => {}
+            }
+            return Ok(false);
+        }
+        match action {
+            Action::Escape if !tree.query.is_empty() => tree.set_query(String::new()),
+            Action::Escape | Action::Inspect => self.mode = Mode::Normal,
+            Action::MoveDown => tree.move_by(1),
+            Action::MoveUp => tree.move_by(-1),
+            Action::HalfPageDown => tree.move_by(10),
+            Action::HalfPageUp => tree.move_by(-10),
+            Action::Top => tree.top(),
+            Action::Bottom => tree.bottom(),
+            Action::Expand => tree.expand(),
+            Action::Collapse => tree.collapse(),
+            Action::ExpandAll => tree.expand_all(),
+            Action::CollapseAll => tree.collapse_all(),
+            Action::Enter => tree.toggle(),
+            Action::EnterFilter => {
+                tree.set_query(String::new());
+                *searching = true;
+            }
+            Action::NextMatch => tree.next_match(),
+            Action::PrevMatch => tree.prev_match(),
             _ => {}
         }
         Ok(false)
@@ -1181,54 +1186,47 @@ impl App {
         let docker = Arc::clone(&self.docker);
         let tx = self.msg_tx.clone();
         tokio::spawn(async move {
-            let Ok(info) = docker
+            let result = docker
                 .inspect_container(
                     &container_id,
                     None::<bollard::query_parameters::InspectContainerOptions>,
                 )
                 .await
-            else {
-                return;
-            };
-
-            let mounts = info
-                .mounts
-                .unwrap_or_default()
-                .into_iter()
-                .map(|m| {
-                    let mount_type = m
-                        .typ
-                        .map(|t| format!("{t:?}").to_lowercase())
-                        .unwrap_or_else(|| "unknown".into());
-                    MountInfo {
-                        mount_type,
-                        source: m.source.unwrap_or_default(),
-                        destination: m.destination.unwrap_or_default(),
-                        rw: m.rw.unwrap_or(true),
-                    }
-                })
-                .collect();
-
-            let networks = info
-                .network_settings
-                .and_then(|ns| ns.networks)
-                .unwrap_or_default()
-                .into_iter()
-                .map(|(name, ep)| NetworkInfo {
-                    name,
-                    ip: ep.ip_address.unwrap_or_default(),
-                    gateway: ep.gateway.unwrap_or_default(),
-                    mac: ep.mac_address.unwrap_or_default(),
-                })
-                .collect();
-
+                .map_err(|e| e.to_string())
+                .and_then(|info| serde_json::to_value(info).map_err(|e| e.to_string()));
             let _ = tx
-                .send(AppMsg::InspectDetail(ContainerInspectExtra {
-                    mounts,
-                    networks,
-                }))
+                .send(AppMsg::Inspect {
+                    container_id,
+                    result,
+                })
                 .await;
         });
+    }
+
+    /// Responses for a container that is no longer open are dropped.
+    pub fn handle_inspect_result(
+        &mut self,
+        id: String,
+        result: std::result::Result<serde_json::Value, String>,
+    ) {
+        let Mode::ContainerInspect {
+            container_id, tree, ..
+        } = &mut self.mode
+        else {
+            return;
+        };
+        if *container_id != id {
+            return;
+        }
+        match result {
+            Ok(value) => *tree = Some(InspectTree::new(&value)),
+            Err(e) => {
+                self.mode = Mode::Normal;
+                self.status = Some(format!("inspect failed: {e}"));
+                self.status_expires =
+                    Some(std::time::Instant::now() + std::time::Duration::from_secs(5));
+            }
+        }
     }
 
     // ── Background task spawning ──────────────────────────────────────────────

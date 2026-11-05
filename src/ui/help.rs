@@ -87,8 +87,8 @@ fn help_lines(theme: &Theme) -> Vec<Line<'static>> {
             desc("                yank mode (y/i/d)"),
         ]),
         Line::from(vec![
-            key(theme, "  K"),
-            desc("                inspect selected"),
+            key(theme, "  i / K"),
+            desc("            inspect selected"),
         ]),
         Line::from(vec![key(theme, "  /"), desc("                filter list")]),
         Line::from(vec![
@@ -164,6 +164,32 @@ fn help_lines(theme: &Theme) -> Vec<Line<'static>> {
             desc("           move through results"),
         ]),
         Line::from(vec![key(theme, "  Esc"), desc("             cancel edit")]),
+        Line::from(""),
+        section(theme, "  Inspect container  [i]"),
+        Line::from(vec![
+            key(theme, "  h / l"),
+            desc("           collapse or go to parent / expand"),
+        ]),
+        Line::from(vec![
+            key(theme, "  H / L"),
+            desc("           collapse / expand whole branch"),
+        ]),
+        Line::from(vec![
+            key(theme, "  Enter"),
+            desc("           toggle branch"),
+        ]),
+        Line::from(vec![
+            key(theme, "  /"),
+            desc("               search keys and values"),
+        ]),
+        Line::from(vec![
+            key(theme, "  n / N"),
+            desc("           next / previous match"),
+        ]),
+        Line::from(vec![
+            key(theme, "  Esc"),
+            desc("             clear search, then close"),
+        ]),
         Line::from(""),
         section(theme, "  Command mode  [:]"),
         Line::from(vec![key(theme, "  Enter"), desc("           execute")]),
