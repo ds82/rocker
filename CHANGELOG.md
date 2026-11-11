@@ -3,6 +3,18 @@
 All notable changes to rocker are documented here. This file is generated
 from the commit history by git-cliff on every release; don't edit it by hand.
 
+## [0.2.0] - 2026-11-11
+
+### Features
+
+- **filter:** Navigate results with arrow keys while typing
+- **inspect:** Browse containers as a searchable collapsible tree
+
+### Documentation
+
+- **openspec:** Plan container inspect tree
+- Document the container inspect tree
+
 ## [0.1.0] - 2026-10-14
 
 ### Features
